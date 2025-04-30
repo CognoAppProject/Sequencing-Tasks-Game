@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     const instructionModal = document.getElementById('instruction-modal');
     const startGameBtn = document.getElementById('start-game-btn');
     const stepsList = document.getElementById('steps-list');
@@ -10,18 +10,17 @@ document.addEventListener("DOMContentLoaded", function() {
     const timerElement = document.getElementById('timer');
 
     // Show instructions on load
-    window.onload = function() {
+    window.onload = function () {
         instructionModal.style.display = "flex";
     };
 
     // Start game
-    startGameBtn.onclick = function() {
+    startGameBtn.onclick = function () {
         instructionModal.style.display = "none";
         loadLevel();
         startTimer();
     };
 
-    // Define all steps
     const allSteps = [
         "Select a Dish 🍲",
         "Find Recipe 🥣",
@@ -33,13 +32,12 @@ document.addEventListener("DOMContentLoaded", function() {
         "Clean Up 🧼"
     ];
 
-    // Define levels with steps and rewards
     const levels = [
-        { steps: [2,3,5,6], reward: "You unlocked a new recipe! 🎉" },
-        { steps: [2,3,4,5,6], reward: "You unlocked a new recipe! 🥳" },
-        { steps: [2,3,4,5,6,7], reward: "You unlocked a new recipe! ✨" },
-        { steps: [1,2,3,4,5,6,7], reward: "You unlocked a new recipe! 🎊" },
-        { steps: [0,1,2,3,4,5,6,7], reward: "You earned a gold medal 🏅" }
+        { steps: [2, 3, 5, 6], reward: "You unlocked a new recipe! 🎉" },
+        { steps: [2, 3, 4, 5, 6], reward: "You unlocked a new recipe! 🥳" },
+        { steps: [2, 3, 4, 5, 6, 7], reward: "You unlocked a new recipe! ✨" },
+        { steps: [1, 2, 3, 4, 5, 6, 7], reward: "You unlocked a new recipe! 🎊" },
+        { steps: [0, 1, 2, 3, 4, 5, 6, 7], reward: "You earned a gold medal 🏅" }
     ];
 
     let currentLevel = 0;
@@ -51,6 +49,9 @@ document.addEventListener("DOMContentLoaded", function() {
     function loadLevel() {
         levelElement.textContent = currentLevel + 1;
         stepsList.innerHTML = '';
+        rewardElement.textContent = '';
+        message.textContent = '';
+
         levels[currentLevel].steps.forEach(stepIndex => {
             const step = document.createElement('li');
             step.textContent = allSteps[stepIndex];
@@ -58,6 +59,7 @@ document.addEventListener("DOMContentLoaded", function() {
             step.setAttribute('data-index', stepIndex);
             stepsList.appendChild(step);
         });
+
         shuffleSteps();
     }
 
@@ -69,8 +71,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function startTimer() {
         startTime = Date.now();
-        timerInterval = setInterval(function() {
-            elapsedTime = Math.floor((Date.now() - startTime) / 1000); // Elapsed time in seconds
+        timerInterval = setInterval(() => {
+            elapsedTime = Math.floor((Date.now() - startTime) / 1000);
             timerElement.textContent = `Time: ${elapsedTime}s`;
         }, 1000);
     }
@@ -79,43 +81,50 @@ document.addEventListener("DOMContentLoaded", function() {
         clearInterval(timerInterval);
     }
 
-    stepsList.addEventListener('dragstart', function(event) {
+    stepsList.addEventListener('dragstart', function (event) {
         event.dataTransfer.setData('text/plain', event.target.dataset.index);
     });
 
-    stepsList.addEventListener('dragover', function(event) {
+    stepsList.addEventListener('dragover', function (event) {
         event.preventDefault();
     });
 
-    stepsList.addEventListener('drop', function(event) {
+    stepsList.addEventListener('drop', function (event) {
         event.preventDefault();
         const data = event.dataTransfer.getData('text/plain');
         const draggedItem = document.querySelector(`li[data-index="${data}"]`);
         const targetItem = event.target.closest('li');
-        if (draggedItem && targetItem) {
+        if (draggedItem && targetItem && draggedItem !== targetItem) {
             stepsList.insertBefore(draggedItem, targetItem);
         }
     });
 
-    checkBtn.addEventListener('click', function() {
+    checkBtn.addEventListener('click', function () {
         const userOrder = Array.from(stepsList.children).map(step => parseInt(step.getAttribute('data-index')));
 
         if (JSON.stringify(userOrder) === JSON.stringify(levels[currentLevel].steps)) {
             message.textContent = "Correct Order! 🎉";
             message.style.color = "green";
             score += 10;
+            scoreValue.textContent = score;
 
-            // Move to next level or finish
             if (currentLevel < levels.length - 1) {
+                rewardElement.textContent = levels[currentLevel].reward;
                 currentLevel++;
-                loadLevel();
-            } else {
-                message.textContent = "Congratulations! You completed all levels!";
-                checkBtn.disabled = true;
-                stopTimer();
                 setTimeout(() => {
-                    message.textContent = `Game Over! Final Score: ${score} | Time: ${elapsedTime}s`;
-                }, 1000);
+                    loadLevel();
+                }, 1500);
+            } else {
+                stopTimer();
+                message.textContent = "Congratulations! You completed all levels!";
+                rewardElement.textContent = "🏆 Game Over!";
+                checkBtn.disabled = true;
+
+                // Submit result to Android
+                if (window.Android && Android.submitResult) {
+                    Android.submitResult("Sequencing Tasks Game", score, elapsedTime);
+                    console.log("Result submitted to Android:", score, elapsedTime);
+                }
             }
         } else {
             message.textContent = "Incorrect Order! Try Again!";
